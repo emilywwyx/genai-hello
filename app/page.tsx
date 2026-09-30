@@ -1,68 +1,41 @@
-import { supabase } from "@/lib/supabase";
-
-type WishlistItem = {
-  id: number;
-  name: string;
-  brand: string;
-  category: string;
-  color: string | null;
-  size: string | null;
-  priority: number | null;
-};
+import GoogleLoginButton from "@/components/google-login-button";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function Home() {
-  const { data: items, error } = await supabase
-    .from("wishlist")
-    .select("*")
-    .order("priority", { ascending: true });
+  const supabase = await createClient();
 
-  if (error) {
-    return (
-      <main className="p-8">
-        <h1 className="text-3xl font-bold">My Wishlist</h1>
-        <p className="mt-4">Failed to load wishlist.</p>
-      </main>
-    );
-  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   return (
     <main className="min-h-screen p-8">
-      <h1 className="mb-6 text-3xl font-bold">My Wishlist</h1>
+      <h1 className="text-3xl font-bold">Wishlist Planner</h1>
 
-      <div className="grid gap-4">
-        {items?.map((item: WishlistItem) => (
-          <div
-            key={item.id}
-            className="rounded-lg border p-5"
-          >
-            <h2 className="text-xl font-semibold">
-              {item.name}
-            </h2>
+      {!user ? (
+        <div className="mt-6">
+          <p className="mb-4">
+            Sign in to view and manage your wishlist.
+          </p>
 
-            <p className="mt-1 text-gray-600">
-              {item.brand} · {item.category}
-            </p>
+          <GoogleLoginButton />
+        </div>
+      ) : (
+        <div className="mt-6">
+          <p>You are signed in as:</p>
+          <p className="font-semibold">{user.email}</p>
 
-            {item.color && (
-              <p className="mt-2">
-                Color: {item.color}
-              </p>
-            )}
+          <div className="mt-4 space-x-4">
+            <a href="/wishlist" className="underline">
+              View Wishlist
+            </a>
 
-            {item.size && (
-              <p>
-                Size: {item.size}
-              </p>
-            )}
-
-            {item.priority !== null && (
-              <p>
-                Priority: {item.priority}
-              </p>
-            )}
+            <a href="/profile" className="underline">
+              Profile
+            </a>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </main>
   );
 }
