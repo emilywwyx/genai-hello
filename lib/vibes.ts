@@ -20,7 +20,7 @@ export const VIBES = [
     id: "columbia",
     label: "Columbia",
     instructions:
-      "Columbia insider. Connect the photo to Columbia student life (Butler Library, the Core, dining halls, club applications, finals) only where it genuinely fits what is in the photo.",
+      "Columbia insider. Tie the joke to everyday Columbia student life, only where it fits what is in the photo. Draw from a wide mix and never use the same kind of reference twice in one set: problem sets and office hours, coding assignments and debugging at 3am, labs in Mudd, group projects, career fairs and internship recruiting, registration and waitlists, Butler all-nighters, dining halls like Ferris and JJ's, dorm life, the 1 train, midterms and finals. Do not default to consulting clubs or Lit Hum.",
   },
 ] as const;
 
