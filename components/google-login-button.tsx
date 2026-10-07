@@ -19,10 +19,7 @@ export default function GoogleLoginButton() {
   }
 
   return (
-    <button
-      onClick={signInWithGoogle}
-      className="rounded-lg bg-black px-5 py-3 text-white"
-    >
+    <button onClick={signInWithGoogle} className="btn btn-primary">
       Sign in with Google
     </button>
   );
