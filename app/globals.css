@@ -1,49 +1,91 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f5f7;
-  --foreground: #1d1d1f;
+  --concrete: #f1f1ee;
+  --ink: #111111;
+  --muted: #6b6b68;
+  --line: #e1e1dc;
+  --accent: #ee352e;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text",
-    "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  --color-concrete: var(--concrete);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-archivo), -apple-system, "Helvetica Neue", Arial,
+    sans-serif;
+}
+
+@theme {
+  --animate-pop: pop 0.3s ease-out;
+
+  @keyframes pop {
+    0% {
+      transform: scale(1);
+    }
+    40% {
+      transform: scale(1.15);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--concrete);
+  color: var(--ink);
   font-family: var(--font-sans);
 }
 
 @layer components {
-  .btn {
-    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0071e3] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40;
+  .display {
+    font-stretch: 82%;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 0.95;
   }
 
-  .btn-primary {
-    @apply bg-[#0071e3] text-white hover:bg-[#0a84ff] hover:shadow-md;
-  }
-
-  .btn-secondary {
-    @apply bg-black/5 text-[#1d1d1f] hover:bg-black/10;
-  }
-
-  .nav-link {
-    @apply cursor-pointer rounded-full px-3 py-1.5 text-sm text-black/70 transition duration-200 hover:bg-black/5 hover:text-black;
+  .label {
+    @apply text-[11px] font-semibold tracking-[0.12em] text-muted uppercase;
   }
 
   .card {
-    @apply rounded-3xl bg-white p-6 shadow-[0_2px_16px_rgba(0,0,0,0.06)];
+    @apply overflow-hidden rounded-2xl border border-line bg-white;
+  }
+
+  .sign {
+    @apply flex items-center justify-between gap-3 bg-ink px-5 py-3 text-white;
+  }
+
+  .sign-title {
+    font-stretch: 85%;
+    @apply text-sm font-bold tracking-[0.08em] uppercase;
+  }
+
+  .btn {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .btn-primary {
+    @apply bg-ink text-white hover:bg-black/80;
+  }
+
+  .btn-ghost {
+    @apply border border-line bg-white text-ink hover:border-ink;
+  }
+
+  .btn-light {
+    @apply bg-white text-ink hover:bg-white/85;
   }
 
   .input {
-    @apply w-full rounded-xl border border-black/10 bg-white px-4 py-2.5 text-[15px] transition duration-200 outline-none hover:border-black/25 focus:border-[#0071e3] focus:ring-4 focus:ring-[#0071e3]/15;
+    @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-[15px] transition duration-150 outline-none hover:border-black/30 focus:border-ink;
   }
 
   .field-label {
-    @apply mb-1.5 block text-sm font-medium text-black/70;
+    @apply mb-1.5 block text-sm font-semibold;
   }
 }

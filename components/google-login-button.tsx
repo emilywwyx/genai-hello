@@ -1,26 +1,19 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
+import { signInWithGoogle } from "@/lib/auth-client";
 
-export default function GoogleLoginButton() {
-  async function signInWithGoogle() {
-    const supabase = createClient();
+type GoogleLoginButtonProps = {
+  label?: string;
+  className?: string;
+};
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-
-    if (error) {
-      console.error("Google login failed:", error.message);
-    }
-  }
-
+export default function GoogleLoginButton({
+  label = "Sign in with Google",
+  className = "btn btn-primary",
+}: GoogleLoginButtonProps) {
   return (
-    <button onClick={signInWithGoogle} className="btn btn-primary">
-      Sign in with Google
+    <button onClick={signInWithGoogle} className={className}>
+      {label}
     </button>
   );
 }

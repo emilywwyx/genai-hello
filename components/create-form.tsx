@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ImageUp, LoaderCircle, MapPin, RefreshCw } from "lucide-react";
+import CopyButton from "@/components/copy-button";
+import VoiceBullet from "@/components/voice-bullet";
 import { createClient } from "@/lib/supabase/client";
+import { generateCaptionsAction } from "@/lib/generate-action";
+import { NEIGHBORHOODS, VOICE_HINTS } from "@/lib/tone-style";
 import { VIBES, type VibeId } from "@/lib/vibes";
-import { generateCaptionsAction } from "@/app/create/actions";
 
 const MAX_DIMENSION = 1600;
 
@@ -32,14 +36,40 @@ async function toJpeg(file: File): Promise<Blob | null> {
   }
 }
 
+function StepCard({
+  step,
+  title,
+  hint,
+  children,
+}: {
+  step: string;
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="card">
+      <div className="flex items-baseline gap-3 border-b border-line px-5 py-3.5">
+        <span className="display text-xl text-accent">{step}</span>
+        <h2 className="font-semibold">{title}</h2>
+        {hint && <span className="text-sm text-muted">{hint}</span>}
+      </div>
+      <div className="p-5">{children}</div>
+    </section>
+  );
+}
+
 export default function CreateForm({ userId }: { userId: string }) {
   const [photo, setPhoto] = useState<Blob | null>(null);
   const [fileName, setFileName] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
+  const [neighborhood, setNeighborhood] = useState("");
   const [vibe, setVibe] = useState<VibeId>(VIBES[0].id);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [captions, setCaptions] = useState<string[]>([]);
+  const [uploadedPath, setUploadedPath] = useState<string | null>(null);
+  const [imageId, setImageId] = useState<number | null>(null);
 
   async function handleFileChange(
     event: React.ChangeEvent<HTMLInputElement>
@@ -52,6 +82,8 @@ export default function CreateForm({ userId }: { userId: string }) {
 
     setCaptions([]);
     setMessage("");
+    setUploadedPath(null);
+    setImageId(null);
 
     const jpeg = await toJpeg(selected);
 
@@ -79,25 +111,34 @@ export default function CreateForm({ userId }: { userId: string }) {
 
     setLoading(true);
     setCaptions([]);
-    setMessage("Uploading photo...");
+    setMessage("");
 
-    const supabase = createClient();
+    let path = uploadedPath;
 
-    const filePath = `${userId}/${Date.now()}.jpg`;
+    if (!path) {
+      const supabase = createClient();
+      const newPath = `${userId}/${Date.now()}.jpg`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("caption-images")
-      .upload(filePath, photo, { contentType: "image/jpeg" });
+      const { error: uploadError } = await supabase.storage
+        .from("caption-images")
+        .upload(newPath, photo, { contentType: "image/jpeg" });
 
-    if (uploadError) {
-      setMessage("Failed to upload photo.");
-      setLoading(false);
-      return;
+      if (uploadError) {
+        setMessage("Failed to upload photo.");
+        setLoading(false);
+        return;
+      }
+
+      path = newPath;
+      setUploadedPath(newPath);
     }
 
-    setMessage("Writing captions...");
-
-    const result = await generateCaptionsAction(filePath, vibe);
+    const result = await generateCaptionsAction(
+      path,
+      vibe,
+      neighborhood || null,
+      imageId ?? undefined
+    );
 
     setLoading(false);
 
@@ -106,16 +147,14 @@ export default function CreateForm({ userId }: { userId: string }) {
       return;
     }
 
+    setImageId(result.imageId);
     setCaptions(result.captions);
-    setMessage("Done! Your captions are live on the feed.");
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card mt-8 space-y-7">
-      <div>
-        <span className="field-label">1. Photo</span>
-
-        <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-black/15 bg-[#fafafc] px-6 py-10 text-center transition duration-200 hover:border-[#0071e3] hover:bg-[#0071e3]/5">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <StepCard step="01" title="Photo">
+        <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-line bg-[#f7f7f4] px-6 py-10 text-center transition duration-150 hover:border-ink">
           <input
             type="file"
             accept="image/*"
@@ -128,68 +167,150 @@ export default function CreateForm({ userId }: { userId: string }) {
               <img
                 src={preview}
                 alt="Preview"
-                className="max-h-72 rounded-xl object-cover"
+                className="max-h-80 rounded-lg object-contain"
               />
-              <span className="mt-2 text-sm text-black/50">
+              <span className="text-sm text-muted">
                 {fileName} · Click to change
               </span>
             </>
           ) : (
             <>
-              <span className="text-4xl">📷</span>
-              <span className="font-medium">Choose a photo</span>
-              <span className="text-sm text-black/50">JPG, PNG or WebP</span>
+              <ImageUp size={30} strokeWidth={1.5} className="text-muted" />
+              <span className="font-semibold">Choose a photo or meme</span>
+              <span className="text-sm text-muted">JPG, PNG or WebP</span>
             </>
           )}
         </label>
-      </div>
+      </StepCard>
 
-      <div>
-        <span className="field-label">2. Tone</span>
-
-        <div className="inline-flex flex-wrap gap-1 rounded-2xl bg-black/5 p-1">
-          {VIBES.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              aria-pressed={vibe === option.id}
-              onClick={() => setVibe(option.id)}
-              className={`cursor-pointer rounded-xl px-4 py-2 text-sm font-medium transition duration-200 ${
-                vibe === option.id
-                  ? "bg-white text-black shadow-sm"
-                  : "text-black/55 hover:text-black"
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
+      <StepCard step="02" title="Where in New York?" hint="Optional">
+        <div className="relative">
+          <MapPin
+            size={16}
+            className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-muted"
+          />
+          <input
+            type="text"
+            list="neighborhoods"
+            value={neighborhood}
+            onChange={(event) => setNeighborhood(event.target.value)}
+            maxLength={40}
+            disabled={imageId !== null}
+            placeholder="Morningside Heights, Williamsburg, Central Park..."
+            className="input pl-10 disabled:bg-[#f7f7f4] disabled:text-muted"
+          />
+          <datalist id="neighborhoods">
+            {NEIGHBORHOODS.map((place) => (
+              <option key={place} value={place} />
+            ))}
+          </datalist>
         </div>
-      </div>
+        <p className="mt-2 text-sm text-muted">
+          Shown on your post, and helps the AI write a more New York caption.
+        </p>
+      </StepCard>
 
-      <div className="border-t border-black/5 pt-7 text-center">
+      <StepCard step="03" title="Pick a voice">
+        <div className="grid gap-2 sm:grid-cols-2">
+          {VIBES.map((option) => {
+            const selected = vibe === option.id;
+
+            return (
+              <button
+                key={option.id}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setVibe(option.id)}
+                className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-left transition duration-150 ${
+                  selected
+                    ? "border-ink bg-ink text-white"
+                    : "border-line bg-white hover:border-black/40"
+                }`}
+              >
+                <VoiceBullet vibe={option.id} size="md" />
+                <span>
+                  <span className="block font-semibold">{option.label}</span>
+                  <span
+                    className={`block text-sm ${
+                      selected ? "text-white/65" : "text-muted"
+                    }`}
+                  >
+                    {VOICE_HINTS[option.id]}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </StepCard>
+
+      <div className="flex flex-wrap items-center gap-4 pt-2">
         <button
           type="submit"
           disabled={loading}
-          className="btn btn-primary w-full py-3.5 text-base sm:w-80"
+          className="btn btn-primary px-7 py-3.5 text-base"
         >
-          {loading ? "Generating..." : "✨ Generate captions"}
+          {loading ? (
+            <>
+              <LoaderCircle size={17} className="animate-spin" />
+              Writing captions
+            </>
+          ) : imageId ? (
+            <>
+              <RefreshCw size={16} />
+              Write three more in this voice
+            </>
+          ) : (
+            "Write my captions"
+          )}
         </button>
 
-        {message && <p className="mt-3 text-sm text-black/60">{message}</p>}
+        {message && <p className="text-sm text-accent">{message}</p>}
       </div>
 
-      {captions.length > 0 && (
-        <div className="space-y-2">
-          {captions.map((caption, index) => (
-            <p key={index} className="rounded-2xl bg-[#f5f5f7] p-4">
-              {caption}
-            </p>
+      {loading && (
+        <div className="card space-y-4 p-5">
+          {[0, 1, 2].map((index) => (
+            <div
+              key={index}
+              className="h-6 animate-pulse rounded-full bg-black/[0.06]"
+              style={{ width: `${85 - index * 15}%` }}
+            />
           ))}
-
-          <Link href="/" className="btn btn-secondary mt-2">
-            Vote on the feed →
-          </Link>
         </div>
+      )}
+
+      {!loading && captions.length > 0 && (
+        <section className="card">
+          <div className="sign">
+            <span className="sign-title">Your captions</span>
+            <span className="text-xs text-white/60">Posted to the feed</span>
+          </div>
+
+          <ol className="divide-y divide-line">
+            {captions.map((caption, index) => (
+              <li
+                key={`${index}-${caption}`}
+                className="flex items-start justify-between gap-4 px-5 py-4"
+              >
+                <span className="flex gap-3">
+                  <VoiceBullet vibe={vibe} />
+                  <span className="font-medium">{caption}</span>
+                </span>
+                <CopyButton text={caption} />
+              </li>
+            ))}
+          </ol>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4">
+            <p className="text-sm text-muted">
+              Want a different angle? Pick another voice and write again.
+            </p>
+            <Link href="/" className="btn btn-ghost">
+              See it on the feed →
+            </Link>
+          </div>
+        </section>
       )}
     </form>
   );

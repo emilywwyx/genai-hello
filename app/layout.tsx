@@ -1,19 +1,23 @@
 import type { Metadata } from "next";
-import SiteHeader from "@/components/site-header";
+import { Archivo } from "next/font/google";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
 import "./globals.css";
 
+const archivo = Archivo({
+  variable: "--font-archivo",
+  subsets: ["latin"],
+  axes: ["wdth"],
+});
+
 export const metadata: Metadata = {
-  title: "Caption NYC",
-  description: "AI captions for your NYC photos, rated by Columbia students.",
+  title: SITE_NAME,
+  description: SITE_DESCRIPTION,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="flex min-h-full flex-col">
-        <SiteHeader />
-        {children}
-      </body>
+    <html lang="en" className={`${archivo.variable} h-full antialiased`}>
+      <body className="min-h-full">{children}</body>
     </html>
   );
 }

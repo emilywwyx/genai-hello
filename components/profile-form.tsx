@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Avatar from "@/components/avatar";
 import { createClient } from "@/lib/supabase/client";
 
 type ProfileFormProps = {
@@ -45,7 +45,7 @@ export default function ProfileForm({
       return;
     }
 
-    setMessage("Profile updated!");
+    setMessage("Saved.");
     router.refresh();
   }
 
@@ -91,26 +91,20 @@ export default function ProfileForm({
     }
 
     setAvatar(publicUrl);
-    setMessage("Profile photo updated!");
+    setMessage("Profile photo updated.");
     router.refresh();
   }
 
   return (
-    <div className="card mt-8">
-      <div className="flex items-center gap-5">
-        {avatar ? (
-          <img
-            src={avatar}
-            alt="Profile"
-            className="h-20 w-20 rounded-full object-cover"
-          />
-        ) : (
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-black/5 text-3xl">
-            👤
-          </div>
-        )}
+    <div>
+      <div className="flex items-center gap-4">
+        <Avatar
+          name={first || "?"}
+          avatarUrl={avatar}
+          size="h-16 w-16 text-xl"
+        />
 
-        <label className="btn btn-secondary">
+        <label className="btn btn-ghost">
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"
@@ -121,12 +115,11 @@ export default function ProfileForm({
         </label>
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>
           <label htmlFor="first-name" className="field-label">
             First name
           </label>
-
           <input
             id="first-name"
             type="text"
@@ -141,7 +134,6 @@ export default function ProfileForm({
           <label htmlFor="last-name" className="field-label">
             Last name
           </label>
-
           <input
             id="last-name"
             type="text"
@@ -152,16 +144,11 @@ export default function ProfileForm({
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 pt-2">
+        <div className="flex items-center gap-4 pt-1">
           <button type="submit" className="btn btn-primary">
             Save profile
           </button>
-
-          <Link href="/" className="btn btn-secondary">
-            Back to feed
-          </Link>
-
-          {message && <p className="text-sm text-black/60">{message}</p>}
+          {message && <p className="text-sm text-muted">{message}</p>}
         </div>
       </form>
     </div>

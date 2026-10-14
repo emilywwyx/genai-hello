@@ -9,11 +9,13 @@ const DAILY_LIMIT = 30;
 
 export type GenerateResult =
   | { error: string }
-  | { error: null; captions: string[] };
+  | { error: null; captions: string[]; imageId: number };
 
 export async function generateCaptionsAction(
   imagePath: string,
-  vibeId: string
+  vibeId: string,
+  neighborhoodInput: string | null,
+  existingImageId?: number
 ): Promise<GenerateResult> {
   const supabase = await createClient();
 
@@ -30,7 +32,7 @@ export async function generateCaptionsAction(
   }
 
   if (!isVibeId(vibeId)) {
-    return { error: "Invalid vibe." };
+    return { error: "Invalid tone." };
   }
 
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -55,21 +57,46 @@ export async function generateCaptionsAction(
     return { error: "Could not read the uploaded image." };
   }
 
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("caption-images").getPublicUrl(imagePath);
+  let imageId = existingImageId;
+  let neighborhood = neighborhoodInput?.trim().slice(0, 40) || null;
 
-  const { data: image, error: imageError } = await supabase
-    .from("images")
-    .insert({ image_url: publicUrl, storage_path: imagePath, vibe: vibeId })
-    .select("id")
-    .single();
+  if (imageId) {
+    const { data: owned } = await supabase
+      .from("images")
+      .select("id, storage_path, neighborhood")
+      .eq("id", imageId)
+      .eq("created_by", user.id)
+      .maybeSingle();
 
-  if (imageError || !image) {
-    return { error: "Failed to save image." };
+    if (!owned || owned.storage_path !== imagePath) {
+      return { error: "Invalid image." };
+    }
+
+    neighborhood = owned.neighborhood;
+  } else {
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("caption-images").getPublicUrl(imagePath);
+
+    const { data: image, error: imageError } = await supabase
+      .from("images")
+      .insert({
+        image_url: publicUrl,
+        storage_path: imagePath,
+        vibe: vibeId,
+        neighborhood,
+      })
+      .select("id")
+      .single();
+
+    if (imageError || !image) {
+      return { error: "Failed to save image." };
+    }
+
+    imageId = image.id as number;
   }
 
-  const prompt = buildPrompt(vibeId);
+  const prompt = buildPrompt(vibeId, neighborhood);
   const startedAt = Date.now();
 
   let raw: string | null = null;
@@ -94,7 +121,7 @@ export async function generateCaptionsAction(
   const { data: request, error: requestError } = await supabase
     .from("caption_requests")
     .insert({
-      image_id: image.id,
+      image_id: imageId,
       vibe: vibeId,
       prompt,
       model: modelUsed,
@@ -108,7 +135,7 @@ export async function generateCaptionsAction(
     .single();
 
   if (!result) {
-    return { error: "AI generation failed. Please try again." };
+    return { error: "The AI is busy right now. Please try again." };
   }
 
   if (requestError || !request) {
@@ -117,9 +144,10 @@ export async function generateCaptionsAction(
 
   const { error: captionsError } = await supabase.from("captions").insert(
     result.captions.map((content) => ({
-      image_id: image.id,
+      image_id: imageId,
       request_id: request.id,
       content,
+      vibe: vibeId,
     }))
   );
 
@@ -128,6 +156,8 @@ export async function generateCaptionsAction(
   }
 
   revalidatePath("/");
+  revalidatePath("/best");
+  revalidatePath("/profile");
 
-  return { error: null, captions: result.captions };
+  return { error: null, captions: result.captions, imageId };
 }

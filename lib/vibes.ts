@@ -34,21 +34,26 @@ export function getVibeLabel(id: string) {
   return VIBES.find((vibe) => vibe.id === id)?.label ?? id;
 }
 
-export function buildPrompt(vibeId: VibeId) {
+export function buildPrompt(vibeId: VibeId, neighborhood: string | null) {
   const vibe = VIBES.find((v) => v.id === vibeId)!;
 
   return [
-    "You are the funniest person in a college group chat. A friend drops this photo in the chat and you write the captions that make everyone laugh.",
+    "You are the funniest person in a college group chat. A friend who lives in New York City drops this photo in the chat and you write the captions that make everyone laugh.",
+    neighborhood && `The photo was taken in ${neighborhood}, New York City.`,
     "Look at the attached photo, including any text that appears in it.",
     'Step 1 ("description"): In one or two plain sentences, say what is actually in the photo.',
-    'Step 2 ("drafts"): Write 8 caption drafts. A good caption is a joke, not a description. It picks one specific thing visible in the photo and gives it an unexpected meaning: misread what is happening on purpose, exaggerate the stakes, give the people or objects a secret motive, or compare it to an everyday struggle.',
+    'Step 2 ("drafts"): Write 8 caption drafts. A good caption is a joke, not a description. It picks one specific thing visible in the photo and gives it an unexpected meaning: misread what is happening on purpose, exaggerate the stakes, give the people or objects a secret motive, or compare it to an everyday New York struggle.',
     'Step 3 ("captions"): Pick the 3 funniest drafts. They must use different angles.',
     `Tone: ${vibe.instructions}`,
     "Rules:",
     "- Every caption must hinge on something clearly visible in the photo. Do not invent objects that are not there.",
+    "- Lean into New York life (the subway, rent, crowds, weather, bodegas, neighborhoods) when it fits the photo, but never force it.",
     "- A caption that only describes the photo fails. Cut it.",
     "- At most 14 words. It should sound like a real person typed it. Casual lowercase is fine.",
     "- No hashtags, no emojis, no quotation marks. No slurs, no jokes about people's bodies or appearance, nothing sexual.",
     'Return JSON with "description" (string), "drafts" (array of 8 strings), and "captions" (array of exactly 3 strings).',
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
+
