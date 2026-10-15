@@ -117,7 +117,7 @@ function PostFlow() {
   return (
     <div className="container">
       <header className="page-head">
-        <span className="eyebrow">Post a photo</span>
+        <span className="eyebrow">Post a feed</span>
         <h1 className="h-xl">Caption your New York</h1>
         <p>Upload a photo or meme, pick a voice, and get three captions. They go straight to the feed for everyone to vote on.</p>
       </header>
@@ -239,7 +239,7 @@ function PostFlow() {
                   </div>
                 ))}
                 {image && (
-                  <Link href={`/#post-${image.id}`} className="link-arrow">
+                  <Link href={`/feed?post=${image.id}`} className="link-arrow">
                     See it in the feed
                     <span className="circle"><ArrowUpRight size={14} /></span>
                   </Link>

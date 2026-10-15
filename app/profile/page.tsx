@@ -148,7 +148,7 @@ function ProfileView() {
           <section aria-labelledby="your-posts">
             <div className="section-head" style={{ marginBottom: 16 }}>
               <h2 id="your-posts" className="h-md">Your posts</h2>
-              <Link href="/post" className="btn btn-outline btn-sm"><CameraIcon size={16} /> Post a photo</Link>
+              <Link href="/post" className="btn btn-outline btn-sm"><CameraIcon size={16} /> Post a feed</Link>
             </div>
             {loading ? (
               <Spinner label="Loading your posts…" />
@@ -156,7 +156,7 @@ function ProfileView() {
               <ul className="my-posts">
                 {posts.map(({ image, best }) => (
                   <li key={image.id} className="my-post">
-                    <Link href={`/#post-${image.id}`} className="hof-thumb" aria-label="See this post in the feed">
+                    <Link href={`/feed?post=${image.id}`} className="hof-thumb" aria-label="See this post in the feed">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={image.image_url} alt="" loading="lazy" />
                     </Link>

@@ -32,7 +32,7 @@ export default function HallOfFamePage() {
                 {top.map((c, i) => (
                   <li key={c.id} className={`hof-item${i < 3 ? ' is-podium' : ''}`}>
                     <span className="hof-rank" aria-label={`Rank ${i + 1}`}>{i + 1}</span>
-                    <Link href={`/#post-${c.image_id}`} className="hof-thumb" aria-label="See this post in the feed">
+                    <Link href={`/feed?post=${c.image_id}`} className="hof-thumb" aria-label="See this post in the feed">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={c.image.image_url} alt="" loading="lazy" />
                     </Link>
@@ -56,7 +56,7 @@ export default function HallOfFamePage() {
                 <span className="empty-icon"><TrophyIcon size={28} /></span>
                 <h3 className="h-md">Nothing ranked yet</h3>
                 <p>Once captions start getting votes, the best ones show up here.</p>
-                <Link href="/" className="btn btn-outline">Go to the feed</Link>
+                <Link href="/feed" className="btn btn-outline">Go to the feed</Link>
               </div>
             )}
           </section>

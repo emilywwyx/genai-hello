@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 import { GoogleButton } from './ui';
-import { CameraIcon, HomeIcon, LogoMark, TrophyIcon, UserIcon, GoogleG } from './Icons';
+import { CameraIcon, GridIcon, HomeIcon, LogoMark, TrophyIcon, UserIcon, GoogleG } from './Icons';
 import { fullName } from '@/lib/format';
 
 function Avatar({ size = 32 }: { size?: number }) {
@@ -46,22 +46,18 @@ export function SiteHeader() {
             <span>CAPTIONNYC</span>
           </Link>
           <nav className="desktop-nav" aria-label="Main">
-            {link('/', 'Feed')}
+            {link('/', 'Home')}
+            {link('/feed', 'Feed')}
             {link('/hall-of-fame', 'Hall of Fame')}
           </nav>
           <div className="header-actions">
             {loading ? (
               <span className="header-placeholder" aria-hidden="true" />
             ) : user ? (
-              <>
-                <Link href="/post" className="btn btn-accent btn-sm hide-mobile">
-                  <CameraIcon size={16} /> Post a photo
-                </Link>
-                <Link href="/profile" className={`profile-chip${isActive('/profile') ? ' is-active' : ''}`} aria-label="Profile">
-                  <Avatar />
-                  <span className="hide-mobile">Profile</span>
-                </Link>
-              </>
+              <Link href="/profile" className={`profile-chip${isActive('/profile') ? ' is-active' : ''}`} aria-label="Profile">
+                <Avatar />
+                <span className="hide-mobile">Profile</span>
+              </Link>
             ) : (
               <GoogleButton next={pathname} className="btn-sm" />
             )}
@@ -72,6 +68,10 @@ export function SiteHeader() {
       <nav className="tab-bar" aria-label="Main">
         <Link href="/" className={`tab${isActive('/') ? ' is-active' : ''}`} aria-current={isActive('/') ? 'page' : undefined}>
           <HomeIcon size={22} />
+          <span>Home</span>
+        </Link>
+        <Link href="/feed" className={`tab${isActive('/feed') ? ' is-active' : ''}`} aria-current={isActive('/feed') ? 'page' : undefined}>
+          <GridIcon size={22} />
           <span>Feed</span>
         </Link>
         <Link href="/hall-of-fame" className={`tab${isActive('/hall-of-fame') ? ' is-active' : ''}`} aria-current={isActive('/hall-of-fame') ? 'page' : undefined}>
@@ -110,9 +110,10 @@ export function SiteFooter() {
         </span>
         <span className="muted">Your New York, captioned.</span>
         <nav className="footer-links" aria-label="Footer">
-          <Link href="/">Feed</Link>
+          <Link href="/">Home</Link>
+          <Link href="/feed">Feed</Link>
           <Link href="/hall-of-fame">Hall of Fame</Link>
-          <Link href="/post">Post a photo</Link>
+          <Link href="/post">Post a feed</Link>
           <Link href="/profile">Profile</Link>
         </nav>
       </div>

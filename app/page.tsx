@@ -38,7 +38,7 @@ export default function FeedPage() {
           <div className="hero-cta">
             {authLoading ? null : user ? (
               <Link href="/post" className="btn btn-accent">
-                <CameraIcon size={18} /> Post a photo
+                <CameraIcon size={18} /> Post a feed
               </Link>
             ) : (
               <GoogleButton next="/post" label="Sign in with Google to post" />
@@ -65,6 +65,10 @@ export default function FeedPage() {
                   <h2 id="latest-heading" className="h-lg">Latest posts</h2>
                   <p>Vote on your favorite caption. The highest-voted one in each post is the top pick.</p>
                 </div>
+                <Link href="/feed" className="link-arrow">
+                  See all in Feed
+                  <span className="circle"><ArrowUpRight size={14} /></span>
+                </Link>
               </div>
               {posts && posts.length > 0 ? (
                 <div className="feed">
