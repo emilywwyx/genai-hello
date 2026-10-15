@@ -36,7 +36,22 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  await supabase.auth.getClaims();
+  const { data } = await supabase.auth.getClaims();
+  const path = request.nextUrl.pathname;
+
+  if (!data?.claims && (path.startsWith("/post") || path.startsWith("/profile"))) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/signin";
+    url.search = `?next=${encodeURIComponent(path)}`;
+
+    const redirect = NextResponse.redirect(url);
+
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirect.cookies.set(cookie);
+    });
+
+    return redirect;
+  }
 
   return supabaseResponse;
 }

@@ -1,13 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export async function castVote(
+export async function setVote(
   captionId: number,
-  value: 1 | -1
+  value: 1 | -1 | 0
 ): Promise<{ error: string | null }> {
-  if (value !== 1 && value !== -1) {
+  if (![1, -1, 0].includes(value) || !Number.isInteger(captionId)) {
     return { error: "Invalid vote." };
   }
 
@@ -23,34 +22,30 @@ export async function castVote(
 
   const { data: existing } = await supabase
     .from("caption_votes")
-    .select("id, vote")
+    .select("id")
     .eq("caption_id", captionId)
     .eq("user_id", user.id)
     .maybeSingle();
 
   let error;
 
-  if (!existing) {
-    ({ error } = await supabase
-      .from("caption_votes")
-      .insert({ caption_id: captionId, vote: value }));
-  } else if (existing.vote === value) {
-    ({ error } = await supabase
-      .from("caption_votes")
-      .delete()
-      .eq("id", existing.id));
-  } else {
+  if (value === 0) {
+    if (existing) {
+      ({ error } = await supabase
+        .from("caption_votes")
+        .delete()
+        .eq("id", existing.id));
+    }
+  } else if (existing) {
     ({ error } = await supabase
       .from("caption_votes")
       .update({ vote: value })
       .eq("id", existing.id));
+  } else {
+    ({ error } = await supabase
+      .from("caption_votes")
+      .insert({ caption_id: captionId, vote: value }));
   }
 
-  if (error) {
-    return { error: "Failed to save vote." };
-  }
-
-  revalidatePath("/");
-
-  return { error: null };
+  return { error: error ? "Failed to save vote." : null };
 }

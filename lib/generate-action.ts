@@ -1,21 +1,19 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { callGemini, parseCaptionResponse, GEMINI_MODEL } from "@/lib/gemini";
-import { buildPrompt, isVibeId } from "@/lib/vibes";
+import { buildPrompt, isVibeId } from "@/lib/prompt";
+import { CAPTION_COLUMNS, type RawCaption } from "@/lib/rows";
 
 const DAILY_LIMIT = 30;
 
 export type GenerateResult =
-  | { error: string }
-  | { error: null; captions: string[]; imageId: number };
+  | { ok: true; captions: RawCaption[] }
+  | { ok: false; code: "auth" | "limit" | "busy" | "unknown" };
 
 export async function generateCaptionsAction(
-  imagePath: string,
-  vibeId: string,
-  neighborhoodInput: string | null,
-  existingImageId?: number
+  imageId: number,
+  vibeId: string
 ): Promise<GenerateResult> {
   const supabase = await createClient();
 
@@ -24,15 +22,11 @@ export async function generateCaptionsAction(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { error: "Please sign in first." };
+    return { ok: false, code: "auth" };
   }
 
-  if (!imagePath.startsWith(`${user.id}/`)) {
-    return { error: "Invalid image." };
-  }
-
-  if (!isVibeId(vibeId)) {
-    return { error: "Invalid tone." };
+  if (!isVibeId(vibeId) || !Number.isInteger(imageId)) {
+    return { ok: false, code: "unknown" };
   }
 
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -44,59 +38,29 @@ export async function generateCaptionsAction(
     .gte("created_at", since);
 
   if ((count ?? 0) >= DAILY_LIMIT) {
-    return {
-      error: `You can generate ${DAILY_LIMIT} times per day. Come back tomorrow!`,
-    };
+    return { ok: false, code: "limit" };
+  }
+
+  const { data: image } = await supabase
+    .from("images")
+    .select("id, storage_path, neighborhood")
+    .eq("id", imageId)
+    .eq("created_by", user.id)
+    .maybeSingle();
+
+  if (!image) {
+    return { ok: false, code: "unknown" };
   }
 
   const { data: file, error: downloadError } = await supabase.storage
     .from("caption-images")
-    .download(imagePath);
+    .download(image.storage_path);
 
   if (downloadError || !file) {
-    return { error: "Could not read the uploaded image." };
+    return { ok: false, code: "unknown" };
   }
 
-  let imageId = existingImageId;
-  let neighborhood = neighborhoodInput?.trim().slice(0, 40) || null;
-
-  if (imageId) {
-    const { data: owned } = await supabase
-      .from("images")
-      .select("id, storage_path, neighborhood")
-      .eq("id", imageId)
-      .eq("created_by", user.id)
-      .maybeSingle();
-
-    if (!owned || owned.storage_path !== imagePath) {
-      return { error: "Invalid image." };
-    }
-
-    neighborhood = owned.neighborhood;
-  } else {
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("caption-images").getPublicUrl(imagePath);
-
-    const { data: image, error: imageError } = await supabase
-      .from("images")
-      .insert({
-        image_url: publicUrl,
-        storage_path: imagePath,
-        vibe: vibeId,
-        neighborhood,
-      })
-      .select("id")
-      .single();
-
-    if (imageError || !image) {
-      return { error: "Failed to save image." };
-    }
-
-    imageId = image.id as number;
-  }
-
-  const prompt = buildPrompt(vibeId, neighborhood);
+  const prompt = buildPrompt(vibeId, image.neighborhood);
   const startedAt = Date.now();
 
   let raw: string | null = null;
@@ -121,7 +85,7 @@ export async function generateCaptionsAction(
   const { data: request, error: requestError } = await supabase
     .from("caption_requests")
     .insert({
-      image_id: imageId,
+      image_id: image.id,
       vibe: vibeId,
       prompt,
       model: modelUsed,
@@ -135,29 +99,28 @@ export async function generateCaptionsAction(
     .single();
 
   if (!result) {
-    return { error: "The AI is busy right now. Please try again." };
+    return { ok: false, code: "busy" };
   }
 
   if (requestError || !request) {
-    return { error: "Failed to save generation." };
+    return { ok: false, code: "unknown" };
   }
 
-  const { error: captionsError } = await supabase.from("captions").insert(
-    result.captions.map((content) => ({
-      image_id: imageId,
-      request_id: request.id,
-      content,
-      vibe: vibeId,
-    }))
-  );
+  const { data: captions, error: captionsError } = await supabase
+    .from("captions")
+    .insert(
+      result.captions.map((content) => ({
+        image_id: image.id,
+        request_id: request.id,
+        content,
+        vibe: vibeId,
+      }))
+    )
+    .select(CAPTION_COLUMNS);
 
-  if (captionsError) {
-    return { error: "Failed to save captions." };
+  if (captionsError || !captions) {
+    return { ok: false, code: "unknown" };
   }
 
-  revalidatePath("/");
-  revalidatePath("/best");
-  revalidatePath("/profile");
-
-  return { error: null, captions: result.captions, imageId };
+  return { ok: true, captions: captions as unknown as RawCaption[] };
 }

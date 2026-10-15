@@ -17,8 +17,7 @@ export async function GET(request: Request) {
         .eq("id", data.user.id)
         .maybeSingle();
 
-      const destination =
-        profile?.first_name && profile?.last_name ? "/" : "/profile";
+      const destination = profile?.first_name ? "/" : "/profile?welcome=1";
 
       return NextResponse.redirect(new URL(destination, requestUrl.origin));
     }
